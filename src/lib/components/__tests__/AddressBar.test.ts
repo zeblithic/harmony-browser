@@ -48,6 +48,16 @@ describe('AddressBar', () => {
     expect(onnavigate).not.toHaveBeenCalled();
   });
 
+  it('disables input when loading', () => {
+    render(AddressBar, { props: { trustLevel: null, loading: true, onnavigate: vi.fn() } });
+    expect(screen.getByRole('textbox')).toHaveProperty('disabled', true);
+  });
+
+  it('does not disable input when not loading', () => {
+    render(AddressBar, { props: { trustLevel: null, loading: false, onnavigate: vi.fn() } });
+    expect(screen.getByRole('textbox')).toHaveProperty('disabled', false);
+  });
+
   it('shows TrustBadge when trustLevel is provided', () => {
     render(AddressBar, { props: { trustLevel: 'full_trust', onnavigate: vi.fn() } });
     expect(screen.getByRole('img', { name: 'Fully trusted' })).toBeTruthy();

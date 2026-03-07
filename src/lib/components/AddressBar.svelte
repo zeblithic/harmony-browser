@@ -4,9 +4,11 @@
 
   let {
     trustLevel,
+    loading = false,
     onnavigate,
   }: {
     trustLevel: TrustLevel | null;
+    loading?: boolean;
     onnavigate: (input: string) => void;
   } = $props();
 
@@ -32,6 +34,7 @@
       onkeydown={handleKeyDown}
       placeholder="hmy:... or wiki/topic or ~presence/**"
       aria-label="Address"
+      disabled={loading}
     />
   </label>
 </nav>

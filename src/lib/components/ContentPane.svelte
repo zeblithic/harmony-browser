@@ -5,10 +5,12 @@
   let {
     content,
     error,
+    loading = false,
     onapprove,
   }: {
     content: ActionResponse | null;
     error: string | null;
+    loading?: boolean;
     onapprove?: (cidHex: string) => void;
   } = $props();
 
@@ -22,6 +24,8 @@
 <section class="content-pane">
   {#if error}
     <div role="alert" class="error">{error}</div>
+  {:else if loading}
+    <p class="loading" role="status">Loading...</p>
   {:else if !content}
     <p class="empty">Enter an address to browse the Harmony network</p>
   {:else if content.trust_level === 'untrusted'}
@@ -46,6 +50,12 @@
     padding: 1rem;
     flex: 1;
     overflow-y: auto;
+  }
+
+  .loading {
+    color: var(--trust-unknown);
+    text-align: center;
+    margin-top: 4rem;
   }
 
   .empty {

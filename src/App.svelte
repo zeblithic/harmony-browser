@@ -41,9 +41,10 @@
 <main>
   <AddressBar
     trustLevel={content?.trust_level ?? null}
+    {loading}
     onnavigate={handleNavigate}
   />
-  <ContentPane {content} {error} onapprove={handleApprove} />
+  <ContentPane {content} {error} {loading} onapprove={handleApprove} />
 </main>
 
 <style>

@@ -9,6 +9,18 @@ describe('ContentPane', () => {
     expect(screen.getByText('Enter an address to browse the Harmony network')).toBeTruthy();
   });
 
+  it('shows loading state', () => {
+    render(ContentPane, { props: { content: null, error: null, loading: true } });
+    expect(screen.getByRole('status')).toBeTruthy();
+    expect(screen.getByText('Loading...')).toBeTruthy();
+  });
+
+  it('shows error over loading state', () => {
+    render(ContentPane, { props: { content: null, error: 'Something broke', loading: true } });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('shows error message', () => {
     render(ContentPane, { props: { content: null, error: 'Content not found' } });
     expect(screen.getByRole('alert')).toBeTruthy();
