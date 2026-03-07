@@ -10,6 +10,9 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+    },
     "windows": [
       {
         "title": "Harmony Browser",

@@ -32,8 +32,12 @@
     </div>
   {:else if content.mime === 'plain_text'}
     <pre>{content.content_html}</pre>
-  {:else}
+  {:else if content.mime === 'markdown'}
     <article>{@html content.content_html}</article>
+  {:else}
+    <div class="unsupported">
+      <p>Content type <code>{content.mime}</code> is not yet renderable.</p>
+    </div>
   {/if}
 </section>
 
@@ -86,8 +90,25 @@
     border-radius: 4px;
   }
 
+  .unsupported {
+    text-align: center;
+    margin-top: 4rem;
+    color: var(--trust-unknown);
+  }
+
+  .unsupported code {
+    font-size: 0.9rem;
+    background: #f0f0f0;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
   @media (prefers-color-scheme: dark) {
     pre {
+      background: #2a2a3e;
+    }
+
+    .unsupported code {
       background: #2a2a3e;
     }
   }

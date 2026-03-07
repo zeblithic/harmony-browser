@@ -1,7 +1,6 @@
 <script lang="ts">
   import TrustBadge from './TrustBadge.svelte';
-
-  type TrustLevel = 'full_trust' | 'preview' | 'untrusted' | 'unknown';
+  import type { TrustLevel } from '../types';
 
   let {
     trustLevel,
@@ -14,7 +13,7 @@
   let inputValue = $state('');
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && inputValue.trim() !== '') {
       onnavigate(inputValue);
     }
   }

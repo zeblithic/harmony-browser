@@ -1,5 +1,5 @@
 <script lang="ts">
-  type TrustLevel = 'full_trust' | 'preview' | 'untrusted' | 'unknown';
+  import type { TrustLevel } from '../types';
 
   const LABELS: Record<TrustLevel, string> = {
     full_trust: 'Fully trusted',

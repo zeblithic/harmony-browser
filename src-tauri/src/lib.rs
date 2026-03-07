@@ -62,7 +62,8 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
                     let text = String::from_utf8_lossy(&data);
                     render_markdown(&text)
                 }
-                _ => sanitize_html(&String::from_utf8_lossy(&data)),
+                MimeHint::PlainText => String::from_utf8_lossy(&data).into_owned(),
+                _ => String::new(),
             };
             Some(ActionResponse {
                 cid: hex::encode(cid.to_bytes()),
