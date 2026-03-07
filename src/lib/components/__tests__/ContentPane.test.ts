@@ -77,6 +77,18 @@ describe('ContentPane', () => {
     expect(article.innerHTML).toContain('<p>trusted content</p>');
   });
 
+  it('shows unsupported message for unknown MIME types', () => {
+    const content: ActionResponse = {
+      cid: 'abc123',
+      mime: 'image',
+      content_html: '',
+      trust_level: 'unknown',
+    };
+    render(ContentPane, { props: { content, error: null } });
+    expect(screen.getByText('image')).toBeTruthy();
+    expect(screen.getByText(/not yet renderable/)).toBeTruthy();
+  });
+
   it('renders full content for unknown trust (text is safe)', () => {
     const content: ActionResponse = {
       cid: 'abc123',
