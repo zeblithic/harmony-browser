@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/config.schema.json",
+  "productName": "Harmony Browser",
+  "version": "0.1.0",
+  "identifier": "net.zeblith.harmony-browser",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+    },
+    "windows": [
+      {
+        "title": "Harmony Browser",
+        "width": 1024,
+        "height": 768,
+        "minWidth": 400,
+        "minHeight": 300
+      }
+    ]
+  }
+}
