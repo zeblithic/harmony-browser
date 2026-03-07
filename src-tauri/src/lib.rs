@@ -33,10 +33,7 @@ fn trust_to_string(trust: &harmony_browser::TrustDecision) -> String {
     }
 }
 
-fn render_markdown(md: &str) -> String {
-    let parser = pulldown_cmark::Parser::new(md);
-    let mut html = String::new();
-    pulldown_cmark::html::push_html(&mut html, parser);
+fn sanitize_html(html: &str) -> String {
     let mut schemes = std::collections::HashSet::new();
     schemes.insert("http");
     schemes.insert("https");
@@ -44,8 +41,15 @@ fn render_markdown(md: &str) -> String {
     schemes.insert("hmy");
     ammonia::Builder::default()
         .url_schemes(schemes)
-        .clean(&html)
+        .clean(html)
         .to_string()
+}
+
+fn render_markdown(md: &str) -> String {
+    let parser = pulldown_cmark::Parser::new(md);
+    let mut html = String::new();
+    pulldown_cmark::html::push_html(&mut html, parser);
+    sanitize_html(&html)
 }
 
 fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
@@ -58,7 +62,7 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
                     let text = String::from_utf8_lossy(&data);
                     render_markdown(&text)
                 }
-                _ => String::from_utf8_lossy(&data).into_owned(),
+                _ => sanitize_html(&String::from_utf8_lossy(&data)),
             };
             Some(ActionResponse {
                 cid: hex::encode(cid.to_bytes()),
@@ -208,6 +212,13 @@ mod tests {
     fn render_markdown_strips_event_handlers() {
         let html = render_markdown("<img onerror=\"alert(1)\" src=\"x\">");
         assert!(!html.contains("onerror"));
+    }
+
+    #[test]
+    fn sanitize_html_strips_scripts() {
+        let result = sanitize_html("<p>safe</p><script>alert(1)</script>");
+        assert!(result.contains("<p>safe</p>"));
+        assert!(!result.contains("<script>"));
     }
 
     #[test]
