@@ -7,6 +7,24 @@ pub struct Fixture {
     pub data: Vec<u8>,
 }
 
+const ALL_NAMED_PATHS: &[&str] = &[
+    "harmony/content/wiki/hello",
+    "harmony/content/wiki/trust-demo",
+    "harmony/content/plain/example",
+];
+
+/// Resolve a CID to a fixture by checking all known fixtures.
+pub fn resolve_by_cid(target: &ContentId) -> Option<Fixture> {
+    for path in ALL_NAMED_PATHS {
+        if let Some(fixture) = resolve_named(path) {
+            if fixture.cid == *target {
+                return Some(fixture);
+            }
+        }
+    }
+    None
+}
+
 /// Resolve a named path to a fixture.
 /// Returns None if the path is unknown.
 pub fn resolve_named(key_expr: &str) -> Option<Fixture> {

@@ -16,4 +16,5 @@ serde_json = "1"
 harmony-browser = { git = "https://github.com/zeblithic/harmony.git", package = "harmony-browser" }
 harmony-content = { git = "https://github.com/zeblithic/harmony.git", package = "harmony-content" }
 pulldown-cmark = "0.12"
+ammonia = "3"
 hex = "0.4"

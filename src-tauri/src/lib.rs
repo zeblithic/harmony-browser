@@ -37,7 +37,15 @@ fn render_markdown(md: &str) -> String {
     let parser = pulldown_cmark::Parser::new(md);
     let mut html = String::new();
     pulldown_cmark::html::push_html(&mut html, parser);
-    html
+    let mut schemes = std::collections::HashSet::new();
+    schemes.insert("http");
+    schemes.insert("https");
+    schemes.insert("mailto");
+    schemes.insert("hmy");
+    ammonia::Builder::default()
+        .url_schemes(schemes)
+        .clean(&html)
+        .to_string()
 }
 
 fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
@@ -66,7 +74,7 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
 #[tauri::command]
 fn navigate(state: State<'_, Mutex<BrowserCore>>, input: String) -> Result<ActionResponse, String> {
     let target = BrowseTarget::parse(&input).map_err(|e| e.to_string())?;
-    let mut core = state.lock().unwrap();
+    let mut core = state.lock().map_err(|e| format!("State lock poisoned: {e}"))?;
     let actions = core.handle_event(BrowserEvent::Navigate(target));
 
     for action in actions {
@@ -111,10 +119,26 @@ fn approve_content(
     arr.copy_from_slice(&bytes);
     let cid = harmony_content::cid::ContentId::from_bytes(arr);
 
-    let mut core = state.lock().unwrap();
-    let _actions = core.handle_event(BrowserEvent::ApproveContent { cid });
+    let mut core = state.lock().map_err(|e| format!("State lock poisoned: {e}"))?;
+    let actions = core.handle_event(BrowserEvent::ApproveContent { cid });
 
-    Err("Approve noted — re-navigate to see updated trust level".into())
+    for action in actions {
+        if let BrowserAction::FetchContent { cid } = action {
+            let fixture = fixtures::resolve_by_cid(&cid)
+                .ok_or_else(|| "Content not found for approved CID".to_string())?;
+            let render_actions = core.handle_event(BrowserEvent::ContentFetched {
+                cid: fixture.cid,
+                data: fixture.data,
+            });
+            for ra in render_actions {
+                if let Some(response) = resolve_render_action(ra) {
+                    return Ok(response);
+                }
+            }
+        }
+    }
+
+    Err("Could not resolve approved content".into())
 }
 
 pub fn run() {
@@ -170,5 +194,33 @@ mod tests {
     #[test]
     fn fixtures_unknown_path_returns_none() {
         assert!(fixtures::resolve_named("harmony/content/nonexistent").is_none());
+    }
+
+    #[test]
+    fn render_markdown_strips_raw_html() {
+        let html = render_markdown("Hello <script>alert(1)</script> world");
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("Hello"));
+        assert!(html.contains("world"));
+    }
+
+    #[test]
+    fn render_markdown_strips_event_handlers() {
+        let html = render_markdown("<img onerror=\"alert(1)\" src=\"x\">");
+        assert!(!html.contains("onerror"));
+    }
+
+    #[test]
+    fn fixtures_resolve_by_cid() {
+        let fixture = fixtures::resolve_named("harmony/content/wiki/hello").unwrap();
+        let found = fixtures::resolve_by_cid(&fixture.cid);
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().cid, fixture.cid);
+    }
+
+    #[test]
+    fn fixtures_resolve_by_cid_unknown() {
+        let fake_cid = harmony_content::cid::ContentId::from_bytes([0u8; 32]);
+        assert!(fixtures::resolve_by_cid(&fake_cid).is_none());
     }
 }
