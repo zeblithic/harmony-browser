@@ -42,6 +42,8 @@ pub fn resolve_named(key_expr: &str) -> Option<Fixture> {
     }
 }
 
+// BundleBuilder inlines blob data at build time, so the MemoryBlobStore
+// is only needed to compute the CID. Safe to drop after build().
 fn build_markdown_fixture(content: &[u8]) -> Fixture {
     let mut store = MemoryBlobStore::new();
     let blob_cid = store.insert(content).unwrap();

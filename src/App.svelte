@@ -20,6 +20,7 @@
 
   async function handleApprove(cidHex: string) {
     error = null;
+    content = null;
     try {
       content = await approveContent(cidHex);
     } catch (e) {
