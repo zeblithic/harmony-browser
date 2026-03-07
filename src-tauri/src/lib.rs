@@ -72,6 +72,10 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
                 trust_level: trust_to_string(&trust_level),
             })
         }
+        BrowserAction::Render(_) => {
+            eprintln!("Unhandled ResolvedContent variant (Dynamic/future)");
+            None
+        }
         _ => None,
     }
 }
@@ -141,6 +145,7 @@ fn approve_content(
                         return Ok(response);
                     }
                 }
+                return Err("Content resolved but could not render".into());
             }
             other => {
                 if let Some(response) = resolve_render_action(other) {

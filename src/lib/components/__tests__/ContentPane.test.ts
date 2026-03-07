@@ -35,8 +35,8 @@ describe('ContentPane', () => {
       content_html: 'just plain text',
       trust_level: 'unknown',
     };
-    render(ContentPane, { props: { content, error: null } });
-    const pre = document.querySelector('pre');
+    const { container } = render(ContentPane, { props: { content, error: null } });
+    const pre = container.querySelector('pre');
     expect(pre).toBeTruthy();
     expect(pre!.textContent).toBe('just plain text');
   });
