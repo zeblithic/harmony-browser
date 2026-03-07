@@ -13,8 +13,9 @@
   let inputValue = $state('');
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && inputValue.trim() !== '') {
-      onnavigate(inputValue);
+    const trimmed = inputValue.trim();
+    if (e.key === 'Enter' && trimmed !== '') {
+      onnavigate(trimmed);
     }
   }
 </script>

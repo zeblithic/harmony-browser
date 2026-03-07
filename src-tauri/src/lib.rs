@@ -128,15 +128,22 @@ fn approve_content(
     let actions = core.handle_event(BrowserEvent::ApproveContent { cid });
 
     for action in actions {
-        if let BrowserAction::FetchContent { cid } = action {
-            let fixture = fixtures::resolve_by_cid(&cid)
-                .ok_or_else(|| "Content not found for approved CID".to_string())?;
-            let render_actions = core.handle_event(BrowserEvent::ContentFetched {
-                cid: fixture.cid,
-                data: fixture.data,
-            });
-            for ra in render_actions {
-                if let Some(response) = resolve_render_action(ra) {
+        match action {
+            BrowserAction::FetchContent { cid } => {
+                let fixture = fixtures::resolve_by_cid(&cid)
+                    .ok_or_else(|| "Content not found for approved CID".to_string())?;
+                let render_actions = core.handle_event(BrowserEvent::ContentFetched {
+                    cid: fixture.cid,
+                    data: fixture.data,
+                });
+                for ra in render_actions {
+                    if let Some(response) = resolve_render_action(ra) {
+                        return Ok(response);
+                    }
+                }
+            }
+            other => {
+                if let Some(response) = resolve_render_action(other) {
                     return Ok(response);
                 }
             }
