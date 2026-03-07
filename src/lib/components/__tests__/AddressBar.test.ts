@@ -31,6 +31,23 @@ describe('AddressBar', () => {
     expect(onnavigate).not.toHaveBeenCalled();
   });
 
+  it('does not call onnavigate when input is empty', async () => {
+    const onnavigate = vi.fn();
+    render(AddressBar, { props: { trustLevel: null, onnavigate } });
+    const input = screen.getByRole('textbox');
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onnavigate).not.toHaveBeenCalled();
+  });
+
+  it('does not call onnavigate for whitespace-only input', async () => {
+    const onnavigate = vi.fn();
+    render(AddressBar, { props: { trustLevel: null, onnavigate } });
+    const input = screen.getByRole('textbox');
+    await fireEvent.input(input, { target: { value: '   ' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onnavigate).not.toHaveBeenCalled();
+  });
+
   it('shows TrustBadge when trustLevel is provided', () => {
     render(AddressBar, { props: { trustLevel: 'full_trust', onnavigate: vi.fn() } });
     expect(screen.getByRole('img', { name: 'Fully trusted' })).toBeTruthy();

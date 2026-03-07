@@ -49,6 +49,7 @@ fn build_markdown_fixture(content: &[u8]) -> Fixture {
     let blob_cid = store.insert(content).unwrap();
     let mut builder = BundleBuilder::new();
     builder.add(blob_cid);
+    // with_metadata(total_size, chunk_count, timestamp, mime_8bytes)
     builder.with_metadata(content.len() as u64, 1, 1000, *b"text/md\0");
     let (data, cid) = builder.build().unwrap();
     Fixture { cid, data }
@@ -59,6 +60,7 @@ fn build_plain_fixture(content: &[u8]) -> Fixture {
     let blob_cid = store.insert(content).unwrap();
     let mut builder = BundleBuilder::new();
     builder.add(blob_cid);
+    // with_metadata(total_size, chunk_count, timestamp, mime_8bytes)
     builder.with_metadata(content.len() as u64, 1, 1000, *b"text/pln");
     let (data, cid) = builder.build().unwrap();
     Fixture { cid, data }

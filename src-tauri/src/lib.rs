@@ -33,6 +33,13 @@ fn trust_to_string(trust: &harmony_browser::TrustDecision) -> String {
     }
 }
 
+fn html_escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
 fn sanitize_html(html: &str) -> String {
     let mut schemes = std::collections::HashSet::new();
     schemes.insert("http");
@@ -62,7 +69,7 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
                     let text = String::from_utf8_lossy(&data);
                     render_markdown(&text)
                 }
-                MimeHint::PlainText => String::from_utf8_lossy(&data).into_owned(),
+                MimeHint::PlainText => html_escape(&String::from_utf8_lossy(&data)),
                 _ => String::new(),
             };
             Some(ActionResponse {
