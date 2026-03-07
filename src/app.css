@@ -2,6 +2,10 @@
   font-family: system-ui, -apple-system, sans-serif;
   color: #213547;
   background-color: #ffffff;
+  --trust-full: #22c55e;
+  --trust-preview: #eab308;
+  --trust-untrusted: #ef4444;
+  --trust-unknown: #9ca3af;
 }
 
 @media (prefers-color-scheme: dark) {
