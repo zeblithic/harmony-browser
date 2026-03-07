@@ -52,5 +52,12 @@ describe('browser-service', () => {
       expect(mockInvoke).toHaveBeenCalledWith('approve_content', { cidHex: 'abc123' });
       expect(result).toEqual(response);
     });
+
+    it('propagates errors from invoke', async () => {
+      mockInvoke.mockRejectedValue('Could not resolve approved content');
+      await expect(approveContent('deadbeef'.repeat(8))).rejects.toBe(
+        'Could not resolve approved content'
+      );
+    });
   });
 });
