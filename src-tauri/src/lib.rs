@@ -124,3 +124,51 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running harmony browser");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_markdown_basic() {
+        let html = render_markdown("# Hello\n\nWorld");
+        assert!(html.contains("<h1>Hello</h1>"));
+        assert!(html.contains("<p>World</p>"));
+    }
+
+    #[test]
+    fn render_markdown_with_bold() {
+        let html = render_markdown("This is **bold** text");
+        assert!(html.contains("<strong>bold</strong>"));
+    }
+
+    #[test]
+    fn render_markdown_with_link() {
+        let html = render_markdown("[click](hmy:abc123)");
+        assert!(html.contains("href=\"hmy:abc123\""));
+    }
+
+    #[test]
+    fn mime_to_string_values() {
+        assert_eq!(mime_to_string(&MimeHint::Markdown), "markdown");
+        assert_eq!(mime_to_string(&MimeHint::PlainText), "plain_text");
+    }
+
+    #[test]
+    fn trust_to_string_values() {
+        assert_eq!(trust_to_string(&harmony_browser::TrustDecision::FullTrust), "full_trust");
+        assert_eq!(trust_to_string(&harmony_browser::TrustDecision::Unknown), "unknown");
+    }
+
+    #[test]
+    fn fixtures_resolve_known_paths() {
+        assert!(fixtures::resolve_named("harmony/content/wiki/hello").is_some());
+        assert!(fixtures::resolve_named("harmony/content/wiki/trust-demo").is_some());
+        assert!(fixtures::resolve_named("harmony/content/plain/example").is_some());
+    }
+
+    #[test]
+    fn fixtures_unknown_path_returns_none() {
+        assert!(fixtures::resolve_named("harmony/content/nonexistent").is_none());
+    }
+}
