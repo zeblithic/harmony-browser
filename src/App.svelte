@@ -7,24 +7,33 @@
 
   let content = $state<ActionResponse | null>(null);
   let error = $state<string | null>(null);
+  let loading = $state(false);
 
   async function handleNavigate(input: string) {
+    if (loading) return;
+    loading = true;
     error = null;
     content = null;
     try {
       content = await navigate(input);
     } catch (e) {
       error = String(e);
+    } finally {
+      loading = false;
     }
   }
 
   async function handleApprove(cidHex: string) {
+    if (loading) return;
+    loading = true;
     error = null;
     content = null;
     try {
       content = await approveContent(cidHex);
     } catch (e) {
       error = String(e);
+    } finally {
+      loading = false;
     }
   }
 </script>

@@ -10,6 +10,9 @@ mod fixtures;
 pub struct ActionResponse {
     cid: String,
     mime: String,
+    /// Rendering contract: markdown is ammonia-sanitized HTML (use {@html}).
+    /// Plain text is raw UTF-8 (use Svelte text interpolation, NOT {@html}).
+    /// Check `mime` to determine the rendering strategy.
     content_html: String,
     trust_level: String,
 }
@@ -108,7 +111,11 @@ fn navigate(state: State<'_, Mutex<BrowserCore>>, input: String) -> Result<Actio
                 }
                 return Err("Content resolved but could not render".into());
             }
-            _ => {}
+            other => {
+                if let Some(response) = resolve_render_action(other) {
+                    return Ok(response);
+                }
+            }
         }
     }
 
