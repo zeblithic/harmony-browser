@@ -17,15 +17,21 @@
 
   onMount(() => { loadFeed(); });
 
+  let loadGeneration = 0;
+
   async function loadFeed() {
+    const gen = ++loadGeneration;
     loading = true;
     error = null;
     try {
-      items = await getVineFeed(filter);
+      const result = await getVineFeed(filter);
+      if (gen !== loadGeneration) return; // stale response from a superseded call
+      items = result;
     } catch (e) {
+      if (gen !== loadGeneration) return;
       error = String(e);
     } finally {
-      loading = false;
+      if (gen === loadGeneration) loading = false;
     }
   }
 
