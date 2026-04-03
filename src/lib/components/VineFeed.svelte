@@ -59,11 +59,14 @@
     }
   }
 
+  let demoLoaded = $state(false);
+
   async function handleFollowDemo() {
+    if (demoLoaded) return;
     try {
-      // Follow both demo creators to seed the feed.
       await followCreator('aa'.repeat(16));
       await followCreator('bb'.repeat(16));
+      demoLoaded = true;
       await loadFeed();
     } catch (e) {
       error = String(e);
@@ -94,7 +97,9 @@
       {/if}
     </h2>
     <div class="header-actions">
-      <button onclick={handleFollowDemo}>Load Demo</button>
+      <button onclick={handleFollowDemo} disabled={demoLoaded}>
+        {demoLoaded ? 'Demo Loaded' : 'Load Demo'}
+      </button>
       <button onclick={handleMarkAllViewed}>Mark All Read</button>
     </div>
   </header>
