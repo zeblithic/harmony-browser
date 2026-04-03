@@ -2,6 +2,7 @@
   import type { VineFeedItem } from '../types';
   import VineCard from './VineCard.svelte';
   import VinePlayer from './VinePlayer.svelte';
+  import { onMount } from 'svelte';
   import { getVineFeed, getVineVideo, followCreator, markVineViewed, markAllViewed } from '../browser-service';
 
   let items = $state<VineFeedItem[]>([]);
@@ -13,6 +14,8 @@
   let activeVideoBase64 = $state<string | null>(null);
 
   let unviewedCount = $derived(items.filter(i => !i.viewed).length);
+
+  onMount(() => { loadFeed(); });
 
   async function loadFeed() {
     loading = true;
@@ -35,12 +38,19 @@
       await loadFeed();
     } catch (e) {
       error = String(e);
+      closePlayer();
     }
   }
 
   function closePlayer() {
     activeItem = null;
     activeVideoBase64 = null;
+  }
+
+  function handleOverlayKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      closePlayer();
+    }
   }
 
   async function handleFollowDemo() {
@@ -117,7 +127,8 @@
   {/if}
 
   {#if activeItem}
-    <div class="player-overlay" role="dialog" aria-label="Vine player">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="player-overlay" role="dialog" aria-label="Vine player" tabindex="0" onkeydown={handleOverlayKeydown}>
       <div class="player-container">
         <button class="close-btn" onclick={closePlayer} aria-label="Close player">X</button>
         {#if activeItem.title}

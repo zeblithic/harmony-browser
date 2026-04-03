@@ -200,6 +200,14 @@ fn get_vine_feed(
     mode: String,
 ) -> Result<Vec<VineFeedResponse>, String> {
     let feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+
+    // Collect unviewed CIDs so we can derive the viewed flag for archive mode.
+    let unviewed_cids: std::collections::HashSet<[u8; 32]> = feed
+        .new_items()
+        .iter()
+        .map(|item| item.bundle_cid)
+        .collect();
+
     let items: Vec<&CoreVineFeedItem> = match mode.as_str() {
         "new" => feed.new_items(),
         "archive" => feed.archive_items(),
@@ -214,15 +222,17 @@ fn get_vine_feed(
             timestamp: item.timestamp,
             title: item.title.clone(),
             reshare_of: item.reshare_of.map(hex::encode),
-            viewed: false,
+            viewed: !unviewed_cids.contains(&item.bundle_cid),
         })
         .collect())
 }
 
+static VINE_FIXTURES: std::sync::LazyLock<Vec<vine_fixtures::VineFixture>> =
+    std::sync::LazyLock::new(vine_fixtures::demo_vines);
+
 #[tauri::command]
 fn get_vine_video(cid_hex: String) -> Result<String, String> {
-    let fixtures = vine_fixtures::demo_vines();
-    for fixture in &fixtures {
+    for fixture in VINE_FIXTURES.iter() {
         if hex::encode(fixture.video_cid.to_bytes()) == cid_hex {
             return Ok(base64::engine::general_purpose::STANDARD.encode(&fixture.video_data));
         }
@@ -246,7 +256,7 @@ fn follow_creator(
     let _ = feed.handle_event(VineEvent::FollowCreator { address: addr });
 
     // Seed with fixture vines from this creator.
-    for fixture in vine_fixtures::demo_vines() {
+    for fixture in VINE_FIXTURES.iter() {
         if fixture.descriptor.creator_address == addr {
             let _ = feed.handle_event(VineEvent::VineAnnounced {
                 item: CoreVineFeedItem {
@@ -254,7 +264,7 @@ fn follow_creator(
                     video_cid: fixture.video_cid.to_bytes(),
                     creator: addr,
                     timestamp: fixture.descriptor.created_at,
-                    title: fixture.descriptor.title,
+                    title: fixture.descriptor.title.clone(),
                     reshare_of: None,
                 },
             });

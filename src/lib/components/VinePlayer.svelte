@@ -8,9 +8,13 @@
   } = $props();
 
   let muted = $state(true);
+  let videoUrl = $state<string | null>(null);
 
-  let videoUrl = $derived.by(() => {
-    if (!videoBase64) return null;
+  $effect(() => {
+    if (!videoBase64) {
+      videoUrl = null;
+      return;
+    }
     try {
       const binary = atob(videoBase64);
       const bytes = new Uint8Array(binary.length);
@@ -18,9 +22,11 @@
         bytes[i] = binary.charCodeAt(i);
       }
       const blob = new Blob([bytes], { type: 'video/webm' });
-      return URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
+      videoUrl = url;
+      return () => URL.revokeObjectURL(url);
     } catch {
-      return null;
+      videoUrl = null;
     }
   });
 
