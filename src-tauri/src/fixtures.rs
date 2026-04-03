@@ -1,4 +1,4 @@
-use harmony_content::blob::{BlobStore, MemoryBlobStore};
+use harmony_content::book::{BookStore, MemoryBookStore};
 use harmony_content::bundle::BundleBuilder;
 use harmony_content::cid::ContentId;
 
@@ -42,10 +42,10 @@ pub fn resolve_named(key_expr: &str) -> Option<Fixture> {
     }
 }
 
-// BundleBuilder inlines blob data at build time, so the MemoryBlobStore
+// BundleBuilder inlines blob data at build time, so the MemoryBookStore
 // is only needed to compute the CID. Safe to drop after build().
 fn build_markdown_fixture(content: &[u8]) -> Fixture {
-    let mut store = MemoryBlobStore::new();
+    let mut store = MemoryBookStore::new();
     let blob_cid = store.insert(content).unwrap();
     let mut builder = BundleBuilder::new();
     builder.add(blob_cid);
@@ -56,7 +56,7 @@ fn build_markdown_fixture(content: &[u8]) -> Fixture {
 }
 
 fn build_plain_fixture(content: &[u8]) -> Fixture {
-    let mut store = MemoryBlobStore::new();
+    let mut store = MemoryBookStore::new();
     let blob_cid = store.insert(content).unwrap();
     let mut builder = BundleBuilder::new();
     builder.add(blob_cid);

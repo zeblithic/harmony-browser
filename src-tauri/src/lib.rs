@@ -1,10 +1,15 @@
 use std::sync::Mutex;
 
-use harmony_browser::{BrowserAction, BrowserCore, BrowserEvent, BrowseTarget, MimeHint, ResolvedContent};
+use harmony_browser::{
+    BrowserAction, BrowserCore, BrowserEvent, BrowseTarget, MimeHint, ResolvedContent,
+    VineEvent, VineFeed, VineFeedItem as CoreVineFeedItem,
+};
+use base64::Engine;
 use serde::Serialize;
 use tauri::State;
 
 mod fixtures;
+mod vine_fixtures;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ActionResponse {
@@ -14,6 +19,8 @@ pub struct ActionResponse {
     /// Plain text is raw UTF-8 (use Svelte text interpolation, NOT {@html}).
     /// Check `mime` to determine the rendering strategy.
     content_html: String,
+    /// Base64-encoded binary content (video, images). Only set for non-text MIME types.
+    content_base64: Option<String>,
     trust_level: String,
 }
 
@@ -22,6 +29,8 @@ fn mime_to_string(mime: &MimeHint) -> String {
         MimeHint::Markdown => "markdown".into(),
         MimeHint::PlainText => "plain_text".into(),
         MimeHint::Image(_) => "image".into(),
+        MimeHint::Video => "video".into(),
+        MimeHint::Compilation => "compilation".into(),
         MimeHint::HarmonyApp => "harmony_app".into(),
         MimeHint::Unknown(_) => "unknown".into(),
     }
@@ -60,18 +69,27 @@ fn resolve_render_action(action: BrowserAction) -> Option<ActionResponse> {
         BrowserAction::Render(ResolvedContent::Static {
             cid, mime, data, trust_level, ..
         }) => {
-            let content_html = match mime {
+            let mut content_html = String::new();
+            let mut content_base64 = None;
+            match mime {
                 MimeHint::Markdown => {
                     let text = String::from_utf8_lossy(&data);
-                    render_markdown(&text)
+                    content_html = render_markdown(&text);
                 }
-                MimeHint::PlainText => String::from_utf8_lossy(&data).into_owned(),
-                _ => String::new(),
+                MimeHint::PlainText => {
+                    content_html = String::from_utf8_lossy(&data).into_owned();
+                }
+                MimeHint::Video | MimeHint::Compilation => {
+                    content_base64 =
+                        Some(base64::engine::general_purpose::STANDARD.encode(&data));
+                }
+                _ => {}
             };
             Some(ActionResponse {
                 cid: hex::encode(cid.to_bytes()),
                 mime: mime_to_string(&mime),
                 content_html,
+                content_base64,
                 trust_level: trust_to_string(&trust_level),
             })
         }
@@ -165,10 +183,139 @@ fn approve_content(
     Err("Could not resolve approved content".into())
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct VineFeedResponse {
+    bundle_cid: String,
+    video_cid: String,
+    creator: String,
+    timestamp: u64,
+    title: Option<String>,
+    reshare_of: Option<String>,
+    viewed: bool,
+}
+
+#[tauri::command]
+fn get_vine_feed(
+    feed_state: State<'_, Mutex<VineFeed>>,
+    mode: String,
+) -> Result<Vec<VineFeedResponse>, String> {
+    let feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+    let items: Vec<&CoreVineFeedItem> = match mode.as_str() {
+        "new" => feed.new_items(),
+        "archive" => feed.archive_items(),
+        _ => return Err("Invalid mode: use 'new' or 'archive'".into()),
+    };
+    Ok(items
+        .into_iter()
+        .map(|item| VineFeedResponse {
+            bundle_cid: hex::encode(item.bundle_cid),
+            video_cid: hex::encode(item.video_cid),
+            creator: hex::encode(item.creator),
+            timestamp: item.timestamp,
+            title: item.title.clone(),
+            reshare_of: item.reshare_of.map(hex::encode),
+            viewed: false,
+        })
+        .collect())
+}
+
+#[tauri::command]
+fn get_vine_video(cid_hex: String) -> Result<String, String> {
+    let fixtures = vine_fixtures::demo_vines();
+    for fixture in &fixtures {
+        if hex::encode(fixture.video_cid.to_bytes()) == cid_hex {
+            return Ok(base64::engine::general_purpose::STANDARD.encode(&fixture.video_data));
+        }
+    }
+    Err(format!("Video not found: {cid_hex}"))
+}
+
+#[tauri::command]
+fn follow_creator(
+    feed_state: State<'_, Mutex<VineFeed>>,
+    address_hex: String,
+) -> Result<(), String> {
+    let bytes = hex::decode(&address_hex).map_err(|e| format!("Hex: {e}"))?;
+    if bytes.len() != 16 {
+        return Err("Address must be 16 bytes".into());
+    }
+    let mut addr = [0u8; 16];
+    addr.copy_from_slice(&bytes);
+
+    let mut feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+    let _ = feed.handle_event(VineEvent::FollowCreator { address: addr });
+
+    // Seed with fixture vines from this creator.
+    for fixture in vine_fixtures::demo_vines() {
+        if fixture.descriptor.creator_address == addr {
+            let _ = feed.handle_event(VineEvent::VineAnnounced {
+                item: CoreVineFeedItem {
+                    bundle_cid: fixture.bundle_cid.to_bytes(),
+                    video_cid: fixture.video_cid.to_bytes(),
+                    creator: addr,
+                    timestamp: fixture.descriptor.created_at,
+                    title: fixture.descriptor.title,
+                    reshare_of: None,
+                },
+            });
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn unfollow_creator(
+    feed_state: State<'_, Mutex<VineFeed>>,
+    address_hex: String,
+) -> Result<(), String> {
+    let bytes = hex::decode(&address_hex).map_err(|e| format!("Hex: {e}"))?;
+    if bytes.len() != 16 {
+        return Err("Address must be 16 bytes".into());
+    }
+    let mut addr = [0u8; 16];
+    addr.copy_from_slice(&bytes);
+    let mut feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+    let _ = feed.handle_event(VineEvent::UnfollowCreator { address: addr });
+    Ok(())
+}
+
+#[tauri::command]
+fn mark_vine_viewed(
+    feed_state: State<'_, Mutex<VineFeed>>,
+    cid_hex: String,
+) -> Result<(), String> {
+    let bytes = hex::decode(&cid_hex).map_err(|e| format!("Hex: {e}"))?;
+    if bytes.len() != 32 {
+        return Err("CID must be 32 bytes".into());
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    let mut feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+    let _ = feed.handle_event(VineEvent::MarkViewed { bundle_cid: arr });
+    Ok(())
+}
+
+#[tauri::command]
+fn mark_all_viewed(feed_state: State<'_, Mutex<VineFeed>>) -> Result<(), String> {
+    let mut feed = feed_state.lock().map_err(|e| format!("Lock: {e}"))?;
+    let _ = feed.handle_event(VineEvent::MarkAllViewed);
+    Ok(())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(BrowserCore::new()))
-        .invoke_handler(tauri::generate_handler![navigate, approve_content])
+        .manage(Mutex::new(VineFeed::new()))
+        .invoke_handler(tauri::generate_handler![
+            navigate,
+            approve_content,
+            get_vine_feed,
+            get_vine_video,
+            follow_creator,
+            unfollow_creator,
+            mark_vine_viewed,
+            mark_all_viewed,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running harmony browser");
 }
