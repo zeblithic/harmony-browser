@@ -59,14 +59,15 @@
     }
   }
 
-  let demoLoaded = $state(false);
+  // Derived from actual feed contents — survives component remounts since
+  // the Rust VineFeed Mutex retains state across tab switches.
+  let demoLoaded = $derived(items.length > 0);
 
   async function handleFollowDemo() {
     if (demoLoaded) return;
     try {
       await followCreator('aa'.repeat(16));
       await followCreator('bb'.repeat(16));
-      demoLoaded = true;
       await loadFeed();
     } catch (e) {
       error = String(e);
