@@ -27,6 +27,7 @@
       const result = await getVineFeed(filter);
       if (gen !== loadGeneration) return; // stale response from a superseded call
       items = result;
+      if (items.length > 0) demoLoaded = true;
     } catch (e) {
       if (gen !== loadGeneration) return;
       error = String(e);
@@ -35,14 +36,20 @@
     }
   }
 
+  let playGeneration = 0;
+
   async function handlePlay(item: VineFeedItem) {
+    const gen = ++playGeneration;
     activeItem = item;
     activeVideoBase64 = null;
     try {
-      activeVideoBase64 = await getVineVideo(item.video_cid);
+      const video = await getVineVideo(item.video_cid);
+      if (gen !== playGeneration) return;
+      activeVideoBase64 = video;
       await markVineViewed(item.bundle_cid);
       await loadFeed();
     } catch (e) {
+      if (gen !== playGeneration) return;
       error = String(e);
       closePlayer();
     }
@@ -59,15 +66,17 @@
     }
   }
 
-  // Derived from actual feed contents — survives component remounts since
-  // the Rust VineFeed Mutex retains state across tab switches.
-  let demoLoaded = $derived(items.length > 0);
+  // Tracks whether demo data exists. Set to true after loading demo OR
+  // when onMount finds existing items (survives component remount from
+  // tab switching, since the Rust VineFeed Mutex retains state).
+  let demoLoaded = $state(false);
 
   async function handleFollowDemo() {
     if (demoLoaded) return;
     try {
       await followCreator('aa'.repeat(16));
       await followCreator('bb'.repeat(16));
+      demoLoaded = true;
       await loadFeed();
     } catch (e) {
       error = String(e);
